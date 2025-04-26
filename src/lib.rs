@@ -2,11 +2,20 @@
 enum Token {
   Number(f64),
   Variable,
+  ConstPI,
+  ConstE,
   Plus,
   Minus,
   Multiply,
   Divide,
   Exponentiation,
+  Sin,
+  Cos,
+  Tan,
+  Ln,
+  Log(f64),
+  Sqrt,
+  Abs,
   LeftParen,
   RightParen,
   EOF,
@@ -16,6 +25,8 @@ enum Token {
 enum Expr {
   Number(f64),
   Variable,
+  ConstPI,
+  ConstE,
   BinaryOp {
     left: Box<Expr>,
     op: Op,
@@ -35,6 +46,13 @@ enum Op {
   Divide,
   Exponentiation,
   Negate,
+  Sin,
+  Cos,
+  Tan,
+  Ln,
+  Log(f64),
+  Sqrt,
+  Abs,
 }
 
 struct Lexer {
@@ -62,7 +80,7 @@ impl Lexer {
     self.pointer += 1;
   }
 
-  fn extract_number(&mut self) -> Result<Token, String> {
+  fn extract_number(&mut self) -> Result<f64, String> {
     let mut number_str = String::new();
     let mut has_decimal = false;
     while let Some(c) = self.peek() {
@@ -78,9 +96,22 @@ impl Lexer {
       }
     }
     match number_str.parse::<f64>() {
-      Ok(num) => Ok(Token::Number(num)),
+      Ok(num) => Ok(num),
       Err(_) => Err(format!("Invalid number: {}", number_str)),
     }
+  }
+
+  fn extract_word(&mut self) -> String {
+    let mut word = String::new();
+    while let Some(c) = self.peek() {
+      if c.is_alphabetic() {
+        word.push(c);
+        self.shift();
+      } else {
+        break;
+      }
+    }
+    return word;
   }
 
   fn tokenize(&mut self) -> Result<Vec<Token>, String> {
@@ -90,13 +121,23 @@ impl Lexer {
         None => break,
         Some(c) => {
           if c.is_digit(10) || c == '.' {
-            tokens.push(self.extract_number()?);
+            tokens.push(Token::Number(self.extract_number()?));
+          } else if c.is_alphabetic() {
+            match self.extract_word().as_str() {
+              "x" => tokens.push(Token::Variable),
+              "pi" => tokens.push(Token::ConstPI),
+              "e" => tokens.push(Token::ConstE),
+              "sin" => tokens.push(Token::Sin),
+              "cos" => tokens.push(Token::Cos),
+              "tan" => tokens.push(Token::Tan),
+              "ln" => tokens.push(Token::Ln),
+              "log" => tokens.push(Token::Log(self.extract_number()?)),
+              "sqrt" => tokens.push(Token::Sqrt),
+              "abs" => tokens.push(Token::Abs),
+              unknown_keyword => return Err(format!("Unexpected keyword: {}", unknown_keyword)),
+            }
           } else {
             match c {
-              'x' => {
-                tokens.push(Token::Variable);
-                self.shift();
-              },
               '+' => {
                 tokens.push(Token::Plus);
                 self.shift();
@@ -125,9 +166,7 @@ impl Lexer {
                 tokens.push(Token::RightParen);
                 self.shift();
               },
-              _ => {
-                return Err(format!("Unexpected character: {}", c));
-              },
+              _ => return Err(format!("Unexpected character: {}", c)),
             }
           }
         },
@@ -167,11 +206,76 @@ impl Parser {
         self.shift();
         Ok(Expr::Variable)
       },
+      Token::ConstPI => {
+        self.shift();
+        Ok(Expr::ConstPI)
+      },
+      Token::ConstE => {
+        self.shift();
+        Ok(Expr::ConstE)
+      },
       Token::Minus => {
         self.shift();
         let expr = self.factor()?;
         Ok(Expr::UnaryOp {
           op: Op::Negate,
+          expr: Box::new(expr),
+        })
+      },
+      Token::Sin => {
+        self.shift();
+        let expr = self.factor()?;
+        Ok(Expr::UnaryOp {
+          op: Op::Sin,
+          expr: Box::new(expr),
+        })
+      },
+      Token::Cos => {
+        self.shift();
+        let expr = self.factor()?;
+        Ok(Expr::UnaryOp {
+          op: Op::Cos,
+          expr: Box::new(expr),
+        })
+      },
+      Token::Tan => {
+        self.shift();
+        let expr = self.factor()?;
+        Ok(Expr::UnaryOp {
+          op: Op::Tan,
+          expr: Box::new(expr),
+        })
+      },
+      Token::Ln => {
+        self.shift();
+        let expr = self.factor()?;
+        Ok(Expr::UnaryOp {
+          op: Op::Ln,
+          expr: Box::new(expr),
+        })
+      },
+      Token::Log(base) => {
+        let base = *base;
+        self.shift();
+        let expr = self.factor()?;
+        Ok(Expr::UnaryOp {
+          op: Op::Log(base),
+          expr: Box::new(expr),
+        })
+      },
+      Token::Sqrt => {
+        self.shift();
+        let expr = self.factor()?;
+        Ok(Expr::UnaryOp {
+          op: Op::Sqrt,
+          expr: Box::new(expr),
+        })
+      },
+      Token::Abs => {
+        self.shift();
+        let expr = self.factor()?;
+        Ok(Expr::UnaryOp {
+          op: Op::Abs,
           expr: Box::new(expr),
         })
       },
@@ -269,6 +373,8 @@ fn evaluate_expr(expr: &Expr, x: f64) -> Result<f64, String> {
   match expr {
     Expr::Number(n) => Ok(*n),
     Expr::Variable => Ok(x),
+    Expr::ConstPI => Ok(std::f64::consts::PI),
+    Expr::ConstE => Ok(std::f64::consts::E),
     Expr::BinaryOp { left, op, right } => {
       let left_val = evaluate_expr(left, x)?;
       let right_val = evaluate_expr(right, x)?;
@@ -291,6 +397,14 @@ fn evaluate_expr(expr: &Expr, x: f64) -> Result<f64, String> {
       let expr_result = evaluate_expr(expr, x)?;
       match op {
         Op::Negate => Ok(-expr_result),
+        Op::Sin => Ok(expr_result.sin()),
+        Op::Cos => Ok(expr_result.cos()),
+        Op::Tan => Ok(expr_result.tan()),
+        Op::Ln => Ok(expr_result.ln()),
+        Op::Log(10.0) => Ok(expr_result.log10()),
+        Op::Log(base) => Ok(expr_result.log(*base)),
+        Op::Sqrt => Ok(expr_result.sqrt()),
+        Op::Abs => Ok(expr_result.abs()),
         _ => Err("Unexpected unary operator".to_string()),
       }
     },

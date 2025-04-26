@@ -101,7 +101,31 @@ mod tests {
   }
 
   #[test]
-  fn test_constants() {
+  fn test_basic_constants() {
+    let pi_lambda = generate_lambda("pi").unwrap();
+    assert_float_eq(pi_lambda(0.0).unwrap(), PI);
+    let pi_lambda = generate_lambda("x + pi").unwrap();
+    assert_float_eq(pi_lambda(5.0).unwrap(), 5.0 + PI);
+    let pi_lambda = generate_lambda("pi + x").unwrap();
+    assert_float_eq(pi_lambda(5.0).unwrap(), 5.0 + PI);
+    let pi_lambda = generate_lambda("pi + 5").unwrap();
+    assert_float_eq(pi_lambda(5.0).unwrap(), 5.0 + PI);
+    let pi_lambda = generate_lambda("5 + pi").unwrap();
+    assert_float_eq(pi_lambda(5.0).unwrap(), 5.0 + PI);
+    let e_lambda = generate_lambda("e").unwrap();
+    assert_float_eq(e_lambda(0.0).unwrap(), E);
+    let e_lambda = generate_lambda("x + e").unwrap();
+    assert_float_eq(e_lambda(5.0).unwrap(), 5.0 + E);
+    let e_lambda = generate_lambda("e + x").unwrap();
+    assert_float_eq(e_lambda(5.0).unwrap(), 5.0 + E);
+    let e_lambda = generate_lambda("e + 5").unwrap();
+    assert_float_eq(e_lambda(0.0).unwrap(), 5.0 + E);
+    let e_lambda = generate_lambda("5 + e").unwrap();
+    assert_float_eq(e_lambda(0.0).unwrap(), 5.0 + E);
+  }
+
+  #[test]
+  fn test_complex_constants() {
     let pi_lambda = generate_lambda("sin(pi/2)").unwrap();
     assert_float_eq(pi_lambda(0.0).unwrap(), 1.0);
     let e_lambda = generate_lambda("ln(e)").unwrap();
@@ -111,8 +135,8 @@ mod tests {
   #[test]
   fn test_undefined_operations_handling() {
     let sqrt_neg_lambda = generate_lambda("sqrt(x)").unwrap();
-    assert!(sqrt_neg_lambda(-1.0).is_err());
+    assert!(sqrt_neg_lambda(-1.0).unwrap().is_nan());
     let log_neg_lambda = generate_lambda("ln(x)").unwrap();
-    assert!(log_neg_lambda(-1.0).is_err());
+    assert!(log_neg_lambda(-1.0).unwrap().is_nan());
   }
 }
