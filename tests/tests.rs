@@ -27,6 +27,8 @@ mod tests {
     assert_float_eq(div_lambda(12.0).unwrap(), 3.0);
     let pow_lambda = generate_lambda("x ^ 2").unwrap();
     assert_float_eq(pow_lambda(3.0).unwrap(), 9.0);
+    let add_mul_lambda = generate_lambda("2 * x + 5").unwrap();
+    assert_float_eq(add_mul_lambda(0.0).unwrap(), 5.0);
   }
 
   #[test]
