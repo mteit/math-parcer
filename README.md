@@ -29,7 +29,7 @@ Add this to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-math-parser = { git = "https://github.com/mteit/math-parser", tag = "0.1.0" }
+math-parser = { git = "https://github.com/mteit/math-parser", tag = "0.2.0" }
 ```
 
 ### Basic Example
