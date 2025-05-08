@@ -411,9 +411,10 @@ fn evaluate_expr(expr: &Expr, x: f64) -> Result<f64, String> {
   }
 }
 
-pub fn generate_lambda(expr_str: &str) -> Result<Box<dyn Fn(f64) -> Result<f64, String>>, String> {
+pub type MathFunction = Box<dyn Fn(f64) -> Result<f64, String>>;
+
+pub fn generate_lambda(expr_str: &str) -> Result<MathFunction, String> {
   let tokens = Lexer::new(expr_str).tokenize()?;
   let ast = Parser::new(tokens).parse()?;
-  let lambda = move |x: f64| -> Result<f64, String> { evaluate_expr(&ast, x) };
-  Ok(Box::new(lambda))
+  Ok(Box::new(move |x: f64| evaluate_expr(&ast, x)))
 }
