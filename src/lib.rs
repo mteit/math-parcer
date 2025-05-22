@@ -1,3 +1,6 @@
+use std::f64::consts::{E, PI};
+use std::fmt;
+
 #[derive(Debug, Clone, PartialEq)]
 enum Token {
   Number(f64),
@@ -63,7 +66,7 @@ struct Lexer {
 impl Lexer {
   fn new(input: &str) -> Self {
     Lexer {
-      input: input.chars().filter(|&x| !x.is_whitespace()).collect(),
+      input: input.chars().collect(), //.filter(|&x| !x.is_whitespace()).collect(),
       pointer: 0,
     }
   }
@@ -136,6 +139,8 @@ impl Lexer {
               "abs" => tokens.push(Token::Abs),
               unknown_keyword => return Err(format!("Unexpected keyword: {}", unknown_keyword)),
             }
+          } else if c.is_whitespace() {
+            self.shift();
           } else {
             match c {
               '+' => {
@@ -369,52 +374,123 @@ impl Parser {
   }
 }
 
-fn evaluate_expr(expr: &Expr, x: f64) -> Result<f64, String> {
-  match expr {
-    Expr::Number(n) => Ok(*n),
-    Expr::Variable => Ok(x),
-    Expr::ConstPI => Ok(std::f64::consts::PI),
-    Expr::ConstE => Ok(std::f64::consts::E),
-    Expr::BinaryOp { left, op, right } => {
-      let left_val = evaluate_expr(left, x)?;
-      let right_val = evaluate_expr(right, x)?;
-      match op {
-        Op::Add => Ok(left_val + right_val),
-        Op::Subtract => Ok(left_val - right_val),
-        Op::Multiply => Ok(left_val * right_val),
-        Op::Divide => {
-          if right_val != 0.0 {
-            Ok(left_val / right_val)
-          } else {
-            Err("Division by zero".to_string())
-          }
-        },
-        Op::Exponentiation => Ok(left_val.powf(right_val)),
-        _ => Err("Unexpected binary operator".to_string()),
-      }
-    },
-    Expr::UnaryOp { op, expr } => {
-      let expr_result = evaluate_expr(expr, x)?;
-      match op {
-        Op::Negate => Ok(-expr_result),
-        Op::Sin => Ok(expr_result.sin()),
-        Op::Cos => Ok(expr_result.cos()),
-        Op::Tan => Ok(expr_result.tan()),
-        Op::Ln => Ok(expr_result.ln()),
-        Op::Log(10.0) => Ok(expr_result.log10()),
-        Op::Log(base) => Ok(expr_result.log(*base)),
-        Op::Sqrt => Ok(expr_result.sqrt()),
-        Op::Abs => Ok(expr_result.abs()),
-        _ => Err("Unexpected unary operator".to_string()),
-      }
-    },
+impl Expr {
+  fn evaluate(&self, x: f64) -> Result<f64, String> {
+    match self {
+      Expr::Number(n) => Ok(*n),
+      Expr::Variable => Ok(x),
+      Expr::ConstPI => Ok(PI),
+      Expr::ConstE => Ok(E),
+      Expr::BinaryOp { left, op, right } => {
+        let left_val = left.evaluate(x)?;
+        let right_val = right.evaluate(x)?;
+        match op {
+          Op::Add => Ok(left_val + right_val),
+          Op::Subtract => Ok(left_val - right_val),
+          Op::Multiply => Ok(left_val * right_val),
+          Op::Divide => {
+            if right_val != 0.0 {
+              Ok(left_val / right_val)
+            } else {
+              Err("Division by zero".to_string())
+            }
+          },
+          Op::Exponentiation => Ok(left_val.powf(right_val)),
+          _ => Err("Unexpected binary operator".to_string()),
+        }
+      },
+      Expr::UnaryOp { op, expr } => {
+        let result = expr.evaluate(x)?;
+        match op {
+          Op::Negate => Ok(-result),
+          Op::Sin => Ok(result.sin()),
+          Op::Cos => Ok(result.cos()),
+          Op::Tan => Ok(result.tan()),
+          Op::Ln => Ok(result.ln()),
+          Op::Log(10.0) => Ok(result.log10()),
+          Op::Log(base) => Ok(result.log(*base)),
+          Op::Sqrt => Ok(result.sqrt()),
+          Op::Abs => Ok(result.abs()),
+          _ => Err("Unexpected unary operator".to_string()),
+        }
+      },
+    }
   }
 }
 
-pub type MathFunction = Box<dyn Fn(f64) -> Result<f64, String>>;
+impl fmt::Display for Expr {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    match self {
+      Expr::Number(n) => write!(f, "{}", n),
+      Expr::Variable => write!(f, "x"),
+      Expr::ConstPI => write!(f, "pi"),
+      Expr::ConstE => write!(f, "e"),
+      Expr::BinaryOp { left, op, right } => {
+        let op_str = match op {
+          Op::Add => "+",
+          Op::Subtract => "-",
+          Op::Multiply => "*",
+          Op::Divide => "/",
+          Op::Exponentiation => "^",
+          _ => panic!("Unexpected binary operator in string conversion"),
+        };
+        write!(f, "({}{}{})", left, op_str, right)
+      },
+      Expr::UnaryOp { op, expr } => match op {
+        Op::Negate => write!(f, "(-{})", expr),
+        Op::Sin => write!(f, "sin({})", expr),
+        Op::Cos => write!(f, "cos({})", expr),
+        Op::Tan => write!(f, "tan({})", expr),
+        Op::Ln => write!(f, "ln({})", expr),
+        Op::Log(10.0) => write!(f, "log({})", expr),
+        Op::Log(base) => write!(f, "log{}({})", base, expr),
+        Op::Sqrt => write!(f, "sqrt({})", expr),
+        Op::Abs => write!(f, "abs({})", expr),
+        _ => panic!("Unexpected unary operator in string conversion"),
+      },
+    }
+  }
+}
 
-pub fn generate_lambda(expr_str: &str) -> Result<MathFunction, String> {
-  let tokens = Lexer::new(expr_str).tokenize()?;
-  let ast = Parser::new(tokens).parse()?;
-  Ok(Box::new(move |x: f64| evaluate_expr(&ast, x)))
+#[derive(Debug, Clone)]
+pub struct MathExpression {
+  original_formula: String,
+  ast: Expr,
+}
+
+impl MathExpression {
+  pub fn new(formula: &str) -> Result<Self, String> {
+    if formula.trim().is_empty() {
+      return Err("Empty expression".to_string());
+    }
+    let tokens = Lexer::new(formula).tokenize()?;
+    let ast = Parser::new(tokens).parse()?;
+    Ok(MathExpression {
+      original_formula: formula.to_string(),
+      ast,
+    })
+  }
+
+  pub fn calculate(&self, x: f64) -> Result<f64, String> {
+    self.ast.evaluate(x)
+  }
+
+  pub fn formula(&self) -> &str {
+    &self.original_formula
+  }
+
+  pub fn normalized_formula(&self) -> String {
+    self.ast.to_string()
+  }
+}
+
+impl fmt::Display for MathExpression {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    write!(f, "{}", self.original_formula)
+  }
+}
+
+pub fn generate_lambda(formula: &str) -> Result<impl Fn(f64) -> Result<f64, String>, String> {
+  let expr = MathExpression::new(formula)?;
+  Ok(move |x: f64| expr.calculate(x))
 }
