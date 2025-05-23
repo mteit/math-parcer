@@ -66,7 +66,7 @@ struct Lexer {
 impl Lexer {
   fn new(input: &str) -> Self {
     Lexer {
-      input: input.chars().collect(), //.filter(|&x| !x.is_whitespace()).collect(),
+      input: input.chars().collect(),
       pointer: 0,
     }
   }
