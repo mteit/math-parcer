@@ -116,7 +116,12 @@ mod tests {
     let ln_expr = MathExpression::new("ln(x)").unwrap();
     assert_calculation_eq(&ln_expr, 1.0, 0.0, "Natural log of 1");
     assert_calculation_eq(&ln_expr, E, 1.0, "Natural logarithm");
-    assert_calculation_eq(&ln_expr, 10.0, (10.0 as f64).ln(), "Log1.5 of 10");
+    assert_calculation_eq(
+      &ln_expr,
+      10.0,
+      (10.0 as f64).ln(),
+      "Natural logarithm of 10",
+    );
 
     let log10_expr = MathExpression::new("log10(x)").unwrap();
     assert_calculation_eq(&log10_expr, 1.0, 0.0, "Log10 of 1");
@@ -127,6 +132,13 @@ mod tests {
     assert_calculation_eq(&log1_5_expr, 1.0, 0.0, "Log1.5 of 1");
     assert_calculation_eq(&log1_5_expr, 1.5, 1.0, "Log1.5 of 1.5");
     assert_calculation_eq(&log1_5_expr, 10.0, (10.0 as f64).log(1.5), "Log1.5 of 10");
+
+    let logx_expr = MathExpression::new("logx(1)").unwrap();
+    assert_calculation_eq(&logx_expr, 5.0, 0.0, "LogX5 of 1");
+    let logx_expr = MathExpression::new("logx(x)").unwrap();
+    assert_calculation_eq(&logx_expr, 5.0, 1.0, "LogX5 of 5");
+    let logx_expr = MathExpression::new("logx(10)").unwrap();
+    assert_calculation_eq(&logx_expr, 5.0, (10.0 as f64).log(5.0), "LogX5 of 10");
   }
 
   #[test]

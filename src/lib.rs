@@ -17,6 +17,7 @@ enum Token {
   Tan,
   Ln,
   Log(f64),
+  LogX,
   Sqrt,
   Abs,
   LeftParen,
@@ -54,6 +55,7 @@ enum Op {
   Tan,
   Ln,
   Log(f64),
+  LogX,
   Sqrt,
   Abs,
 }
@@ -135,6 +137,7 @@ impl Lexer {
               "tan" => tokens.push(Token::Tan),
               "ln" => tokens.push(Token::Ln),
               "log" => tokens.push(Token::Log(self.extract_number()?)),
+              "logx" => tokens.push(Token::LogX),
               "sqrt" => tokens.push(Token::Sqrt),
               "abs" => tokens.push(Token::Abs),
               unknown_keyword => return Err(format!("Unexpected keyword: {}", unknown_keyword)),
@@ -265,6 +268,14 @@ impl Parser {
         let expr = self.factor()?;
         Ok(Expr::UnaryOp {
           op: Op::Log(base),
+          expr: Box::new(expr),
+        })
+      },
+      Token::LogX => {
+        self.shift();
+        let expr = self.factor()?;
+        Ok(Expr::UnaryOp {
+          op: Op::LogX,
           expr: Box::new(expr),
         })
       },
@@ -409,6 +420,7 @@ impl Expr {
           Op::Ln => Ok(result.ln()),
           Op::Log(10.0) => Ok(result.log10()),
           Op::Log(base) => Ok(result.log(*base)),
+          Op::LogX => Ok(result.log(x)),
           Op::Sqrt => Ok(result.sqrt()),
           Op::Abs => Ok(result.abs()),
           _ => Err("Unexpected unary operator".to_string()),
@@ -444,6 +456,7 @@ impl fmt::Display for Expr {
         Op::Ln => write!(f, "ln({})", expr),
         Op::Log(10.0) => write!(f, "log({})", expr),
         Op::Log(base) => write!(f, "log{}({})", base, expr),
+        Op::LogX => write!(f, "logx({})", expr),
         Op::Sqrt => write!(f, "sqrt({})", expr),
         Op::Abs => write!(f, "abs({})", expr),
         _ => panic!("Unexpected unary operator in string conversion"),

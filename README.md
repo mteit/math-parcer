@@ -14,8 +14,9 @@ Math Parser is a simple Rust library that parses mathematical expressions as str
 - Parentheses for expression grouping
 - Support for mathematical functions:
   - `sin`, `cos`, `tan` trigonometric functions
-  - `ln` natural logarithm
   - `log10` base-10 logarithm and custom base logarithms e.g., `log2`, `log1.5`
+  - `logx` base-x logarithm
+  - `ln` natural logarithm
   - `sqrt` square root
   - `abs` absolute value
 - Mathematical constants:
@@ -29,7 +30,7 @@ Add this to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-math-parser = { git = "https://github.com/mteit/math-parser", tag = "0.3.0" }
+math-parser = { git = "https://github.com/mteit/math-parser", tag = "0.4.0" }
 ```
 
 ### Basic Example
